@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Estilos anteriores */
+        .nav-link {
+            color: white !important;
+            transition: background 0.3s;
+        }
+        .nav-link:hover {
+            background-color: #444 !important;
+        }
+        #perfil-nav {
+            position: fixed;
+            bottom: 10px;
+            width: 200px;
+        }
+        .team-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .team-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .add-team-btn:hover {
+            background-color: #000000 !important;
+            color: rgb(255, 255, 255) !important;
+        }
+        /* Estilos adicionales para el modal de miembros */
+        #membersContainer .member-input-group {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        #membersContainer .remove-member {
+            margin-left: 10px;
+        }
+    </style>
+    <%- include('partials/nav-buttons')%>
+</head>
+<body class="bg-light d-flex">
+
+<!-- Sidebar -->
+<%- include('partials/nav-bar')%>
+
+<div class="content flex-grow-1 d-flex flex-column">
+
+    <!-- Barra superior -->
+    <header class="bg-white d-flex justify-content-end align-items-center shadow-sm p-3">
+        <div class="d-flex align-items-center">
+            <input type="text" class="form-control me-2" placeholder="Buscar..." style="max-width: 200px;">
+            <button class="btn btn-outline-secondary">🔍</button>
+        </div>
+    </header>
+
+    <!-- Contenedor de equipos -->
+    <div class="container py-4">
+        <h2 class="mb-4">Mis Equipos</h2>
+
+        <div class="row" id="teamsContainer">
+            <% equipos.forEach(equipo=>{ %>
+            <div class="col-lg-4 col-md-6 col-sm-12 mb-5">
+                <div class="card team-card">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= equipo.nombre_equipo %></h5>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-outline-secondary">Fijar</button>
+                            <button class="btn btn-outline-primary" data-id="<%= equipo.id_equipo %>">Mensajes</button>
+                            <button class="btn btn-outline-success" data-id="<%= equipo.id_equipo %>">Tareas</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% }); %>
+        </div>
+
+        
+        <div class="text-center mt-4">
+            <button class="btn btn-outline-dark add-team-btn" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                ➕ Agregar equipo
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="addTeamModal" tabindex="-1" aria-labelledby="addTeamModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTeamModalLabel">Crear Nuevo Equipo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTeamForm">
+                    <div class="mb-3">
+                        <label for="teamName" class="form-label">Nombre del Equipo</label>
+                        <input type="text" class="form-control" id="teamName" name="teamName" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="teamDescription" class="form-label">Descripción del Equipo</label>
+                        <textarea class="form-control" id="teamDescription" name="teamDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Miembros del Equipo</label>
+                        <div id="membersContainer">
+                            <div class="member-input-group d-flex flex-column">
+                                <input type="text" class="form-control member-input mb-2" placeholder="Nombre del miembro" name="teamMembers[]">
+                                <input type="text" class="form-control member-input mb-2" placeholder="Nombre del miembro" name="teamMembers[]">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary mt-2" id="addMemberButton">+ Agregar Miembro</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="saveTeamButton">Guardar Equipo</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Scripts necesarios de Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    /////////// Agregar mas miembros
+    document.getElementById('addMemberButton').addEventListener('click', function() {
+        const membersContainer = document.getElementById('membersContainer');
+        const newMemberGroup = document.createElement('div');
+        newMemberGroup.className = 'member-input-group mb-2';
+        
+        const memberInput = document.createElement('input');
+        memberInput.type = 'text';
+        memberInput.className = 'form-control member-input';
+        memberInput.placeholder = 'Nombre del miembro';
+        memberInput.name = 'teamMembers[]';
+        
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'btn btn-danger remove-member ms-2';
+        removeButton.innerHTML = '❌';
+        removeButton.addEventListener('click', ()=>{
+            membersContainer.removeChild(newMemberGroup);
+        });
+        
+        newMemberGroup.appendChild(memberInput);
+        newMemberGroup.appendChild(removeButton);
+        membersContainer.appendChild(newMemberGroup);
+    });
+
+    /////////// Guardar equipo
+    document.getElementById('createTeamForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const teamName = document.getElementById('teamName').value;
+        const teamDescription = document.getElementById('teamDescription').value;
+        const memberInputs = document.querySelectorAll('.member-input');
+        const teamMembers = Array.from(memberInputs).map(input => input.value).filter(member => member.trim() !== '');
+
+
+        const response = await fetch('/teams', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ teamName, teamDescription, teamMembers })
+        });
+
+        const data = await response.json()
+
+        if(!response.ok)
+        {
+            alert(data.message);
+            window.location.href = data.redirect;
+        }else {
+            alert(data.message);
+            window.location.href = data.redirect;
+        }
+    });
+
+
+    // Logout 
+    document.getElementById('logout').addEventListener('click', ()=>{
+            document.cookie='jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href='/login';
+        });
+</script>
+</body>
+</html>

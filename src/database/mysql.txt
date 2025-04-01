@@ -1,0 +1,79 @@
+USE knect;
+
+CREATE TABLE usuario
+(
+	id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) UNIQUE NOT NULL,
+    contra VARCHAR (100) NOT NULL,
+    fecha_nacimiento DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,                    --tabla nueva      
+    nombre VARCHAR(100) UNIQUE NOT NULL,              
+    contra VARCHAR(255) NOT NULL,                     
+	fecha_nacimiento DATETIME,    
+    correo VARCHAR(255) NOT NULL UNIQUE,    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE equipos
+(
+	id_equipo VARCHAR(255) PRIMARY KEY,
+	nombre_equipo VARCHAR(255) NOT NULL,
+    nombre_descripcion VARCHAR(255)
+);
+
+
+CREATE TABLE usuarios_equipo
+(
+	id_usuarioEquipo INT AUTO_INCREMENT PRIMARY KEY,
+	id_equipo VARCHAR(255) NOT NULL,
+    id_usuario INT NOT NULL,
+    id_mensaje INT,
+    FOREIGN KEY (id_equipo) REFERENCES equipos(id_equipo),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
+    FOREIGN KEY (id_mensaje) REFERENCES mensajes(id_mensaje)
+);
+
+SELECT * FROM usuarios_equipo;
+SELECT * FROM equipos;
+SELECT * FROM mensajes;
+SELECT * FROM usuario;
+SELECT * FROM Amistad;
+
+
+CREATE TABLE mensajes
+(
+	id_mensaje INT AUTO_INCREMENT PRIMARY KEY,
+    id_emisor INT,
+    id_receptor INT,
+    contenido TEXT NOT NULL,
+    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_emisor) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_receptor) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+ALTER TABLE mensajes 
+ADD COLUMN room_id VARCHAR(50);
+
+CREATE TABLE Amistad (
+    id_amistad INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario1 INT NOT NULL,
+    id_usuario2 INT NOT NULL,
+    estado ENUM('pendiente', 'aceptada', 'rechazada') DEFAULT 'aceptada',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario1) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario2) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    UNIQUE (id_usuario1, id_usuario2) 
+);
+
+SELECT distinct u.nombre 
+FROM usuario u
+JOIN Amistad a ON (u.id_usuario = a.id_usuario1 OR u.id_usuario = a.id_usuario2)
+WHERE u.nombre != "Santiago" 
+AND a.estado = "aceptada";
+
+SELECT * FROM equipos;
+SELECT * FROM usuarios_equipo;
+SELECT e.* FROM equipos e JOIN usuarios_equipo u ON u.id_equipo = e.id_equipo WHERE u.id_usuario = 1

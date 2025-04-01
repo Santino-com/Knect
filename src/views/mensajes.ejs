@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mensajes</title>
+    <!-- Enlace a Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <%- include('partials/nav-buttons')%>
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <div class="d-flex">
+        <%- include('partials/nav-bar')%>  
+        <!-- Contenido principal -->
+        <div class="content flex-fill">
+            <!-- Encabezado superior -->
+            <header class="upperNav bg-white p-3 shadow-sm">
+                <div id="buscar" class="d-flex justify-content-end gap-2">
+                    <input type="text" class="form-control" placeholder="Buscar mensaje...">
+                    <button class="btn btn-outline-secondary">🔍</button>
+                </div>
+            </header>
+
+            <div class="mensajesContainer d-flex p-4 gap-4" style="height: 90vh;">
+                <!-- Lista de conversaciones -->
+                <div class="container-fluid h-100">
+                    <div class="row h-100">
+                        <div class="col-md-3 p-3 bg-light" style="border-right: 1px solid #dee2e6;">
+                            <div class="d-flex flex-column h-100">
+                                <!-- Sección de Amigos -->
+                                <div class="friends-section bg-white p-3 rounded shadow-sm mb-3 flex-grow-1" style="overflow-y: auto;">
+                                    <h3 class="mb-3">Amigos</h3>
+                                    <% friends.forEach(friend=>{ %>
+                                    <button class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn" 
+                                            type="submit" 
+                                            onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-amigo').innerText" 
+                                            data-id="<%= friend.id_usuario %>">
+                                        <span id="nombre-amigo"><%= friend.nombre %></span>
+                                    </button>
+                                    <% }) %>
+                                </div>
+                                
+                                <!-- Sección de Equipos -->
+                                <div class="teams-section bg-white p-3 rounded shadow-sm flex-grow-1" style="overflow-y: auto;">
+                                    <h3 class="mb-3">Equipos</h3>
+                                    <% teams.forEach(team =>{ %>
+                                    <button class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn" 
+                                            type="submit" 
+                                            onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-equipo').innerText" 
+                                            data-id="<%= team.id_equipo %>">
+                                        <span id="nombre-equipo"><%= team.nombre_equipo %></span>
+                                    </button>
+                                    <% }) %>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Columna del chat principal -->
+                        <div class="col-md-9 p-0 d-flex flex-column" style="height: 90vh;">
+                            <div class="chat flex-fill bg-white d-flex flex-column">
+                                <!-- Cabecera del chat -->
+                                <div class="chat-header text-center bg-dark text-white p-3">
+                                    <h3 id="nombreContacto" class="m-0">-------</h3>
+                                </div>
+                
+                                <!-- Área de mensajes -->
+                                <div class="chat-messages flex-fill d-flex flex-column gap-3 p-4 overflow-auto" id="mensajes" style="height: 100px; overflow-y: auto;">
+                                    <div class="welcome-message text-center p-4">
+                                        <i class="bi bi-chat-dots-fill fs-1 text-muted"></i>
+                                        <h3 class="fw-bold mt-3">Empieza una conversación</h3>
+                                        <p class="text-muted">Selecciona un contacto o equipo para comenzar a chatear</p>
+                                    </div>
+                                </div>
+                
+                                <!-- Input para enviar mensajes -->
+                                <div class="chat-input p-3 bg-light border-top">
+                                    <form class="d-flex" id="formMensaje">
+                                        <input type="text" id="mensajeInput" class="form-control rounded-pill" placeholder="Escribe un mensaje..." autocomplete="off">
+                                        <button type="submit" id="enviarMensaje" class="btn btn-primary ms-2">
+                                            <i class="bi bi-send-fill">Enviar</i>
+                                        </button>
+                                        <button id="desconectar" class="btn btn-outline-danger ms-2">
+                                            <i class="bi bi-power">.</i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let currentRoomId=0;
+        const socket = io({
+            auth: {
+                serverOffset: 0,
+                userName: '<%= user[0].nombre %>',
+                roomId: currentRoomId 
+            }
+        });
+
+        // Seleccionar todos los elementos de contactos
+        const friendItems = document.querySelectorAll(".sendBtn");
+
+        friendItems.forEach(item => {
+            item.addEventListener('click', () => {
+                let contactId = item.dataset.id;
+                const currentUserId = '<%= user[0].id_usuario %>';
+
+                // Emitir evento para iniciar chat
+                socket.emit('start-chat', contactId, currentUserId);
+            });
+        });
+
+        socket.on('chat-started', (previusMessages, roomId)=>{
+            currentRoomId = roomId;
+            console.log('Chat inicia');
+
+            const mensajes = document.getElementById('mensajes');
+            mensajes.innerHTML = ``;
+
+            previusMessages.forEach(msg =>{
+                const nuevoMensaje = document.createElement('div');
+                nuevoMensaje.classList.add('mensaje', 'bg-gray-500', 'text-black', 'p-2', 'rounded', 'border', 'border-dark');
+                nuevoMensaje.innerHTML = `
+                                            <div class"mensaje bg-gray-500 text-black p-2 rounded">
+                                                <strong>${msg.nombre}</strong> 
+                                                <p>${msg.contenido}</p>
+                                                <small>${msg.fecha_envio}</small>
+                                            </div>
+                                        `;
+                mensajes.appendChild(nuevoMensaje);
+                mensajes.scrollTop = mensajes.scrollHeight;
+
+            });
+        });
+
+
+        const mensajeInput = document.getElementById('mensajeInput');
+        const mensajeForm = document.getElementById('formMensaje');
+
+        mensajeForm.addEventListener('submit', (e)=>{
+            e.preventDefault();
+
+            if(mensajeInput.value)
+            {
+                socket.emit('chat message', mensajeInput.value, currentRoomId);
+                mensajeInput.value='';
+                mensajeInput.focus();
+            }    
+        });
+        
+        const mensajes = document.getElementById('mensajes'); 
+
+        socket.on('chat message', (msg, serverOffset, fecha, username, roomId)=>{
+
+                const nuevoMensaje = document.createElement('div');
+                nuevoMensaje.classList.add('mensaje', 'bg-gray-500', 'text-black', 'p-2', 'rounded', 'border', 'border-dark');
+                nuevoMensaje.innerHTML = `
+                                            <div class"mensaje bg-gray-500 text-black p-2 rounded">
+                                                <strong>${username}</strong> 
+                                                <p>${msg}</p>
+                                                <small>${fecha}</small>
+                                            </div>
+                                        `;
+                mensajes.appendChild(nuevoMensaje);
+                mensajes.scrollTop = mensajes.scrollHeight;
+                socket.auth.serverOffset = serverOffset;
+            
+        });
+
+        /////////////////// Boton pa desconectar/conectar
+        const desconectarBtn = document.getElementById('desconectar');
+        
+        desconectarBtn.addEventListener('click', (e)=>{
+            if (socket.connected) {
+                desconectarBtn.innerText = 'Conectar';
+                socket.disconnect();
+            } else {
+                desconectarBtn.innerText = 'Desconectar';
+                socket.connect();
+            }
+        })
+
+        /////// Logout
+        document.getElementById('logout').addEventListener('click', ()=>{
+            document.cookie='jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href='/login';
+        });
+
+    </script>
+
+</body>
+</html
