@@ -192,13 +192,11 @@ app.post('/login', async (req, res) => {
 
         res.cookie('jwt', token, cookieOptions);
         res.send({ status: 'ok', message: 'Inicio de sesión exitoso', redirect: '/home' });
-        //res.send({status: 'ok', message: 'Usuario logueado', redirect: '/home'});
-        //res.redirect('/home');
     } catch (error) {
         res.status(401).send({ error: 'Usuario o contraseña incorrecta' });
     }
 });
-///////////////Arregalar registro, le falta el fetch
+
 app.post('/register', async (req, res) => {
     const { user, correo, birth, password } = req.body;
 
@@ -206,11 +204,37 @@ app.post('/register', async (req, res) => {
         return res.status(400).json({ status: "Error", message: "Los campos son obligatorios." });
     }
 
+    // Validación adicional de contraseña
+    if (password.length < 6) {
+        return res.status(400).json({ status: "Error", message: "La contraseña debe tener al menos 6 caracteres." });
+    }
+
     try {
         const idUser = await UserRepository.create({ user, correo, birth, password });
-        res.redirect('/login');
+        
+        return res.status(201).json({ 
+            status: "ok", 
+            message: "Registro exitoso",
+            user: { username: user, email: correo },
+            redirect: "/login"
+        });
     } catch (error) {
-        res.status(400).send(error);
+        console.error("Error en el registro:", error.message);
+        
+        // Determinar el tipo de error y enviar una respuesta adecuada
+        if (error.message.includes("ya está en uso") || 
+            error.message.includes("ya está registrado") ||
+            error.message.includes("Los campos son obligatorios")) {
+            return res.status(400).json({ 
+                status: "Error", 
+                message: error.message 
+            });
+        }
+        
+        return res.status(500).json({ 
+            status: "Error", 
+            message: "Error en el servidor. Inténtalo más tarde." 
+        });
     }
 });
 

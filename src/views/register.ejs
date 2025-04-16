@@ -4,78 +4,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro</title>
-    <%- include('partials/header-style')%>
-    <style>
-        .container {
-            max-width: 1100px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-        .left {
-            background: linear-gradient(to bottom, #2a2d3e, #1f1f2d);
-            color: white;
-            padding: 40px;
-        }
-        .right {
-            background: url('../public/images/montaña.jpg') no-repeat center center/cover;
-            min-height: 100%;
-        }
-
-        .btn-success{
-            border:none;
-            margin:5px;
-        }
-
-        .btn-primary {
-            background-color: #6c2882;
-            border: none;
-            margin: 5px;
-        }
-
-        .btn-primary:hover {
-            background-color: #a53ce0;
-        }
-    </style>
+    <link rel="stylesheet" href="register.css">
 </head>
 <body>
+    <header class="header">
+        <img src="images/logo.png" alt="Logo del sitio" class="logo">
+    </header>
 
-<div class="container row g-0">
-    <!-- Sección Izquierda -->
-    <div class="col-md-5 left d-flex flex-column justify-content-center align-items-center">
-        <h2 class="mb-3">Bienvenido</h2>
-        <p>Regístrate ingresando tus datos</p>
-
-        <form class="w-100" method="POST" action="/register">
-            <div class="mb-3">
-                <label for="username" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="username" placeholder="Ingrese su usuario" name="user" required>
-            </div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Correo electrónico</label>
-                <input type="text" class="form-control" id="email" placeholder="Ingrese su correo" name="correo" required>
-            </div>
-            <div class="mb-3">
-                <label for="dob" class="form-label">Fecha de Nacimiento</label>
-                <input type="date" class="form-control" id="dob" name="birth"required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" class="form-control" id="password" placeholder="Ingrese su contraseña" name="password"required>
+    <main class="container">
+        <section class="left">
+            <div class="login-btn-container">
+                <a href="/login">
+                    <button class="login-btn">Iniciar sesión</button>
+                </a>
             </div>
 
-            <a href="/login" class="btn btn-success w-100">Iniciar Sesion</a>
+            <h2>Bienvenido</h2>
+            <p>Regístrate ingresando tus datos</p>
+            
+            <div id="message-container" class="message-container"></div>
+            
+            <form id="registerForm" class="register-form">
+                <div class="input-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="user" placeholder="Ingrese su usuario" required>
+                </div>
+                <div class="input-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="correo" placeholder="Ingrese su correo" required>
+                </div>
+                <div class="input-group">
+                    <label for="dob">Fecha de Nacimiento</label>
+                    <input type="date" id="dob" name="birth" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                    <span class="small-note">La contraseña debe tener al menos 6 caracteres</span>
+                </div>
+                <button type="submit" class="register-btn">Regístrate</button>
+            </form>
 
-            <button type="submit" class="btn btn-primary w-100">Regístrate</button>
-        </form>
-    </div>
+            <p class="alternative-text">O regístrate con:</p>
+            <div class="social-register">
+                <button class="google">Google</button>
+                <button class="facebook">Facebook</button>
+                <button class="x">X</button>
+            </div>
+        </section>
 
-    <!-- Sección Derecha -->
-    <div class="col-md-7 right"></div>
-</div>
+        <!-- Sección derecha: Imagen desde la carpeta IMG -->
+        <div class="right"></div>
+    </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const user = document.getElementById('username').value;
+            const correo = document.getElementById('email').value;
+            const birth = document.getElementById('dob').value;
+            const password = document.getElementById('password').value;
+            
+            // Validación básica
+            if (!user || !correo || !password) {
+                showMessage('Todos los campos son obligatorios', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user, correo, birth, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('¡Registro exitoso! Redirigiendo al inicio de sesión...', 'success');
+                    setTimeout(() => {
+                        window.location.href = data.redirect || '/login';
+                    }, 1500);
+                } else {
+                    showMessage(data.message || 'Error en el registro', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error de conexión, intenta nuevamente más tarde', 'error');
+            }
+        });
+        
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('message-container');
+            messageContainer.textContent = message;
+            messageContainer.style.display = 'block';
+            
+            if (type === 'error') {
+                messageContainer.className = 'message-container message-error';
+            } else {
+                messageContainer.className = 'message-container message-success';
+            }
+            
+            // Desaparecer después de 5 segundos si es un error
+            if (type === 'error') {
+                setTimeout(() => {
+                    messageContainer.style.display = 'none';
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>

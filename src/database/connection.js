@@ -5,5 +5,5 @@ export const connection = await mysql.createConnection({
     user: 'root',
     database: 'knect',
     port: 3306,
-    password: 'Albert03$'
+    password: 'vivelavi'
 });
