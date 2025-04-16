@@ -3,104 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio - Nuevo Sitio</title>
-    <%- include('partials/header-style')%>
-    <style>
-        .container-custom {
-            max-width: 1200px;
-            width: 70%;
-            height: 90vh;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow: hidden;
-        }
-        .left {
-            background: linear-gradient(to bottom, #2a2d3e, #1f1f2d);
-            padding: 40px;
-        }
-        .login-btn, .register-btn {
-            transition: 0.3s;
-        }
-        .login-btn:hover, .register-btn:hover {
-            background: #a53ce0 !important;
-        }
-        .social-btn {
-            width: 100px;
-            transition: 0.3s;
-        }
-        .google { background: #db4437; }
-        .facebook { background: #4267b2; }
-        .x { background: #333; }
-        .social-btn:hover { filter: brightness(0.9); }
-        .image-overlay {
-            position: relative;
-        }
-        .image-overlay::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.3);
-        }
-        .image-overlay img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .header img {
-            width: 120px;
-        }
-    </style>
+    <title>Inicio</title>
+    <link rel="stylesheet" href="login.css">
 </head>
-<body class="d-flex justify-content-center align-items-center">
+<body>
+    <header class="header">
+        <img src="images/logo.png" alt="Logo del sitio" class="logo">
+    </header>
 
-<div class="container-custom d-flex">
+    <main class="container">
+        <section class="left">
+            <div class="register-btn-container">
+                <a href="register">
+                    <button class="register-btn">Registrarse</button>
+                </a>
+            </div>
 
-    <!-- Sección Izquierda -->
-    <div class="left col-md-6 d-flex flex-column justify-content-between">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <img src="../public/images/logo.png" alt="Logo del sitio" class="header">
-            <a href="/register" class="btn btn-primary register-btn">Registrarse</a>
+            <h2>Hola de nuevo</h2>
+            <p>Ingresa tus datos para acceder a la comunidad</p>
+            
+            <form method="post" action="/login" id="loginForm">
+                <div class="input-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" placeholder="Ingrese su usuario">
+                </div>
+                <div class="input-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" placeholder="Ingrese su contraseña">
+                </div>
+
+                <button type="submit" class="login-btn">Acceder</button>
+            </form>
+
+            <div id="message" style="margin-top: 10px;"></div>
+
+            <p class="alternative-text">O accede con:</p>
+            <div class="social-login">
+                <button class="google">Google</button>
+                <button class="facebook">Facebook</button>
+                <button class="x">X</button>
+            </div>
+        </section>
+
+        <!-- Sección derecha: Imagen desde la carpeta IMG -->
+        <div class="right">
+            <img src="images/montaña.jpg" alt="Imagen de la derecha" class="image">
         </div>
-
-        <h2 class="text-center">Hola de nuevo</h2>
-        <p class="text-center">Ingresa tus datos </p>
-
-        <form class="w-100" method="post" action="/login" id="loginForm">
-            <div class="mb-3">
-                <label for="username" class="form-label">Usuario</label>
-                <input type="text" id="username" class="form-control" placeholder="Ingrese su usuario" name="user">
-            </div>
-
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" id="password" class="form-control" placeholder="Ingrese su contraseña" name="password">
-            </div>
-
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary w-100">Acceder</button>
-            </div>
-        </form>
-
-        <div id="message" class="text-center mt-3"></div>
-
-        <p class="text-center mt-4">O accede con:</p>
-
-        <div class="d-flex justify-content-center gap-3">
-            <button class="btn social-btn google">Google</button>
-            <button class="btn social-btn facebook">Facebook</button>
-            <button class="btn social-btn x">X</button>
-        </div>
-    </div>
-
-    <!-- Sección Derecha -->
-    <div class="col-md-7 image-overlay">
-        <img src="../src/public/images/montaña.jpg" alt="Imagen de la derecha">
-    </div>
-
-</div>
+    </main>
 <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -125,7 +74,6 @@
             messageDiv.style.color = 'green';
             window.location.href = data.redirect;
         }
-
     });
 </script>
 </body>
