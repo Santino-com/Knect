@@ -1,81 +1,118 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro</title>
     <%- include('partials/header-style')%>
-    <style>
-        .container {
-            max-width: 1100px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-        .left {
-            background: linear-gradient(to bottom, #2a2d3e, #1f1f2d);
-            color: white;
-            padding: 40px;
-        }
-        .right {
-            background: url('../public/images/montaña.jpg') no-repeat center center/cover;
-            min-height: 100%;
-        }
+        <style>
+            .container {
+                max-width: 1100px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+                overflow: hidden;
+                backdrop-filter: blur(10px);
+            }
 
-        .btn-success{
-            border:none;
-            margin:5px;
-        }
+            .left {
+                background: linear-gradient(to bottom, #2a2d3e, #1f1f2d);
+                color: white;
+                padding: 40px;
+            }
 
-        .btn-primary {
-            background-color: #6c2882;
-            border: none;
-            margin: 5px;
-        }
+            .right {
+                background: url('../public/images/montaña.jpg') no-repeat center center/cover;
+                min-height: 100%;
+            }
 
-        .btn-primary:hover {
-            background-color: #a53ce0;
-        }
-    </style>
+            .btn-success {
+                border: none;
+                margin: 5px;
+            }
+
+            .btn-primary {
+                background-color: #6c2882;
+                border: none;
+                margin: 5px;
+            }
+
+            .btn-primary:hover {
+                background-color: #a53ce0;
+            }
+        </style>
 </head>
+
 <body>
 
-<div class="container row g-0">
-    <!-- Sección Izquierda -->
-    <div class="col-md-5 left d-flex flex-column justify-content-center align-items-center">
-        <h2 class="mb-3">Bienvenido</h2>
-        <p>Regístrate ingresando tus datos</p>
+    <div class="container row g-0">
+        <!-- Sección Izquierda -->
+        <div class="col-md-5 left d-flex flex-column justify-content-center align-items-center">
+            <h2 class="mb-3">Bienvenido</h2>
+            <p>Regístrate ingresando tus datos</p>
 
-        <form class="w-100" method="POST" action="/register">
-            <div class="mb-3">
-                <label for="username" class="form-label">Usuario</label>
-                <input type="text" class="form-control" id="username" placeholder="Ingrese su usuario" name="user" required>
-            </div>
-            <div class="mb-3">
-                <label for="email" class="form-label">Correo electrónico</label>
-                <input type="text" class="form-control" id="email" placeholder="Ingrese su correo" name="correo" required>
-            </div>
-            <div class="mb-3">
-                <label for="dob" class="form-label">Fecha de Nacimiento</label>
-                <input type="date" class="form-control" id="dob" name="birth"required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Contraseña</label>
-                <input type="password" class="form-control" id="password" placeholder="Ingrese su contraseña" name="password"required>
-            </div>
+            <form class="w-100" id="register-form">
+                <div class="mb-3">
+                    <label for="username" class="form-label">Usuario</label>
+                    <input type="text" class="form-control" id="username" placeholder="Ingrese su usuario" name="user"
+                        required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Correo electrónico</label>
+                    <input type="text" class="form-control" id="email" placeholder="Ingrese su correo" name="correo"
+                        required>
+                </div>
+                <div class="mb-3">
+                    <label for="dob" class="form-label">Fecha de Nacimiento</label>
+                    <input type="date" class="form-control" id="dob" name="birth" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="password" placeholder="Ingrese su contraseña"
+                        name="password" required>
+                </div>
 
-            <a href="/login" class="btn btn-success w-100">Iniciar Sesion</a>
+                <a href="/login" class="btn btn-success w-100">Iniciar Sesion</a>
 
-            <button type="submit" class="btn btn-primary w-100">Regístrate</button>
-        </form>
+                <button class="btn btn-primary w-100">Regístrate</button>
+            </form>
+        </div>
+
+        <!-- Sección Derecha -->
+        <div class="col-md-7 right"></div>
     </div>
 
-    <!-- Sección Derecha -->
-    <div class="col-md-7 right"></div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const registerForm = document.getElementById('register-form');
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            const formData = new FormData(e.currentTarget);
+            const user = formData.get('user');
+            const password = formData.get('password');
+            const correo = formData.get('correo');
+            const birth = formData.get('birth');
+
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'Application/json'
+                },
+                body: JSON.stringify({
+                    user: user,
+                    password: password,
+                    correo: correo,
+                    birth: birth
+                })
+            });
+
+            const data = await response.json();
+
+        })
+
+    </script>
 </body>
+
 </html>

@@ -14,7 +14,7 @@ import { nanoid } from 'nanoid';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import fs from 'fs'
-
+import {socketHandlers} from './sockets.js';
 
 
 
@@ -33,7 +33,7 @@ app.use(express.urlencoded({ extended: false }));
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
-    api_secret: process.env.API_SECRET // Click 'View API Keys' above to copy your API secret
+    api_secret: process.env.API_SECRET 
 });
 
 const upload = multer({ dest: 'uploads/' });
@@ -69,104 +69,11 @@ app.get('/mensajes', async (req, res) => {
     res.render('mensajes', { friends: userFriends, user: userName, teams: teams });
 });
 
-const onlineUsers = new Map();
 
-io.on('connection', async (socket) => {
-    const userId = socket.handshake.auth.userId;
-
-    if (userId) {
-        onlineUsers.set(userId, socket.id);
-
-        socket.broadcast.emit('online', userId);
-
-        for (const [onlineUserId, _] of onlineUsers) {
-            if (onlineUserId !== userId) {
-                socket.emit('online', onlineUserId);
-            }
-        }
-
-        console.log(`Usuario ${userId} conectado`);
-    }
-
-    socket.on('disconnect', () => {
-        if (userId) {
-            onlineUsers.delete(userId);
-            socket.broadcast.emit('offline', userId);
-
-            console.log(`Usuario ${userId} desconectado`);
-        }
-    });
-
-    socket.on('start-chat', async (contactId, currentUserId) => {
-        console.log('Iniciando chat');
-
-        function generateRoomId(user1Id, user2Id) {
-            const sortedIds = [user1Id, user2Id].sort((a, b) => a - b);
-            return `room_${sortedIds[0]}_${sortedIds[1]}`;
-        }
-
-        const roomId = generateRoomId(contactId, currentUserId);
-
-        console.log(roomId);
-        socket.join(roomId);
-        const previusMessages = await UserRepository.getMessages(roomId);
-
-        socket.emit('chat-started', previusMessages, roomId);
-
-    });
-
-    socket.on('chat message', async (msg, room) => {
-
-        const userName = socket.handshake.auth.userName;
-        console.log(userName);
-        const currentUser = await UserRepository.getInfo(userName);
-
-        const saveMensaje = await UserRepository.insertMessage(currentUser[0].id_usuario, msg, room);
-        if (!saveMensaje) throw new Error('Error al guardar el mensaje');
-
-        const lastMessage = await UserRepository.getLastMessage();
-
-        // Emitir el mensaje a todos los clientes conectados
-        io.to(room).emit('chat message', msg, lastMessage[0].id_mensaje,
-            lastMessage[0].fecha_envio.toLocaleString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: 'numeric'
-            }), userName);
-    });
-
-
-
-    if (!socket.recovered) {
-        try {
-            const [results] = await connection.query(`
-                SELECT m.id_mensaje, m.contenido, m.multimedia, m.fecha_envio, m.room_id, u.nombre AS emisor
-                FROM mensajes m
-                JOIN usuario u ON m.id_emisor = u.id_usuario
-                WHERE m.id_mensaje > ? AND m.room_id = ?`,
-                [socket.handshake.auth.serverOffset ?? 0, socket.handshake.auth.roomId ?? 0]
-            );
-
-            results.forEach(row => {
-                if (!row.multimedia) {
-                    socket.to(row.room_id).emit('chat message', row.contenido, row.id_mensaje,
-                        row.fecha_envio.toLocaleString('es-ES', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: 'numeric'
-                        }), row.emisor);
-                } 
-            });
-
-        } catch (error) {
-            console.log('Error: ' + error);
-        }
-    }
+io.on('connect', async (socket) => {
+    socketHandlers(io, socket)
 });
+
 
 app.get('/teams', async (req, res) => {
     const userNameCookie = await authorize.getUserFromCookie(req);
@@ -198,7 +105,7 @@ app.post('/login', async (req, res) => {
         res.status(401).send({ error: 'Usuario o contraseña incorrecta' });
     }
 });
-///////////////Arregalar registro, le falta el fetch
+
 app.post('/register', async (req, res) => {
     const { user, correo, birth, password } = req.body;
 
@@ -264,7 +171,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
         fs.unlinkSync(filePath);
 
-        // Emitimos el mensaje con la URL al chat
+        
+
+        
+
         io.emit('fileMessage', {
             url: result.secure_url,
             type: result.resource_type,

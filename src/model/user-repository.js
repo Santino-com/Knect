@@ -118,6 +118,63 @@ export class UserRepository {
         return results;
     }
 
+    static async incrementUnreadMessages(id, roomId) {
+        try {
+            const [result] = await connection.query(`
+                INSERT INTO notificaciones (id_usuario, room_id, mensajes_no_leidos)
+                VALUES (?, ?, 1)
+                ON DUPLICATE KEY UPDATE mensajes_no_leidos = mensajes_no_leidos + 1
+            `, [id, roomId]);
+            return result;
+        } catch (error) {
+            console.error('Error al incrementar notificaciones:', error);
+            return null;
+        }
+    }
+
+    static async getUnreadMessages(id, roomId) {
+        try {
+            const [rows] = await connection.query(`
+                SELECT mensajes_no_leidos FROM notificaciones
+                WHERE id_usuario = ? AND room_id = ?
+            `, [id, roomId]);
+
+            return rows.length > 0 ? rows.length : 0;
+        } catch (error) {
+            console.error('Error al obtener notificaciones:', error);
+            return 0;
+        }
+    }
+
+    static async markMessagesAsRead(id, roomId) {
+        try {
+            const [result] = await connection.query(`
+                UPDATE notificaciones
+                SET mensajes_no_leidos = 0
+                WHERE id_usuario = ? AND room_id = ?
+            `, [id, roomId]);
+    
+            return result;
+        } catch (error) {
+            console.error('Error al marcar mensajes como leídos:', error);
+            return null;
+        }
+    }
+
+    static async getAllUnreadNotifications(id) {
+        try {
+            const [rows] = await connection.query(`
+                SELECT room_id, mensajes_no_leidos FROM notificaciones
+                WHERE id_usuario = ? AND mensajes_no_leidos > 0
+            `, [id]);
+    
+            return rows;
+        } catch (error) {
+            console.error('Error al obtener todas las notificaciones:', error);
+            return [];
+        }
+    }
+
 }
 
 
