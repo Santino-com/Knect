@@ -10,7 +10,7 @@ const userName = body.dataset.userName;
 let currentRoomId = 0;
 let contactId = 0;
 let socket;
-export {socket};
+export { socket };
 
 
 function startChat(contactId) {
@@ -24,6 +24,7 @@ friendItems.forEach(item => {
     item.addEventListener('click', () => {
         contactId = item.dataset.id;
         //updateNotificationBadge(contactId, true);
+        console.log(`Estas en el chat de ${contactId} y ${userId}. Tu eres ${userId}`);
         startChat(contactId);
 
     });
@@ -46,15 +47,14 @@ mensajeForm.addEventListener('submit', async (e) => {
 });
 
 
-
-
 async function initializeSocket() {
     socket = io({
         auth: {
             serverOffset: 0,
             userName: userName,
             userId: userId,
-            roomId: currentRoomId
+            roomId: currentRoomId,
+            page: 'mensajes'
         }
     });
 
@@ -91,7 +91,7 @@ async function initializeSocket() {
         updateNotificationBadge(userId, false);
     });
 
-    socket.on('fileMessage', (data) => {
+    socket.on('file-message', (data) => {
         handleFileMessage(data);
     });
 
@@ -104,9 +104,7 @@ initializeSocket()
 
 function handleConnect() {
     if (userId) {
-        console.log(`Usuario ${userId} conectado`);
-        //Inicializamos el conteo de notificaciones del usuario
-        //notificationCount.set(userId, {});
+        console.log(`Usuario ${userId} conectado desde mensajes`);
     }
 }
 
@@ -121,12 +119,43 @@ function handleChatMessage(msg, serverOffset, fecha, username) {
     socket.auth.serverOffset = serverOffset;
 }
 
-function updateNotificationBadge(userId, status) { // <-- Recibir roomId
+function updateNotificationBadge(userId, status) {
     const notis = document.querySelectorAll('.badge');
     notis.forEach((noti) => {
         if (noti.dataset.id == userId) {
             noti.style.background = status ? 'green' : 'white';
         }
+    });
+}
+
+
+
+
+
+document.getElementById('enviarArchivo').addEventListener('click', uploadFile)
+async function uploadFile() {
+    const input = document.getElementById('fileInput');
+    const file = input.files[0];
+    if (!file) return alert('Selecciona un archivo');
+
+    const base64File = await toBase64(file);
+
+    console.log(currentRoomId)
+    socket.emit('file message', {
+        file: base64File,
+        currentRoomId,
+        contactId,
+        fileName: file.name,
+        fileType: file.type
+    });
+}
+
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = err => reject(err);
     });
 }
 

@@ -3,7 +3,6 @@ import { renderTextMessage, renderFileMessage } from "./render-mensaje.js";
 
 export function handleChatStarted(previusMessages, roomId) {
     let currentRoomId = roomId;
-    console.log('Chat iniciado en la sala:', currentRoomId);
 
     const mensajesDiv = document.getElementById('mensajes');
     mensajesDiv.innerHTML = ''; // Limpiar mensajes anteriores

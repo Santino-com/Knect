@@ -52,11 +52,13 @@ app.get('/register', authorize.onlyPublic, (req, res) => {
 })
 app.get('/home', authorize.onlyAdmin, async (req, res) => {
     const userNameCookie = await authorize.getUserFromCookie(req);
-
     const currentUser = await UserRepository.getInfo(userNameCookie);
     const userFriends = await UserRepository.getFriends(userNameCookie);
+    const userNotifications = await UserRepository.getNotification(currentUser[0].id_usuario);
 
-    res.render('home', { user: currentUser[0].nombre, friends: userFriends });
+    console.log(userNotifications);
+
+    res.render('home', { user: currentUser[0], friends: userFriends, notifications:  userNotifications});
 });
 
 app.get('/mensajes', async (req, res) => {
@@ -64,9 +66,23 @@ app.get('/mensajes', async (req, res) => {
     const userName = await UserRepository.getInfo(userNameCookie);
     const userFriends = await UserRepository.getFriends(userNameCookie);
     const teams = await TeamRepository.getAllTeams(userName[0].id_usuario);
+    const userNotifications = await UserRepository.getNotification(userName[0].id_usuario);
 
+    let contactName;
+    if(userNotifications.length>0) {
+        contactName = userNotifications[0].emisor; 
+    } else {
+        contactName = 'nadie'
+    }
 
-    res.render('mensajes', { friends: userFriends, user: userName, teams: teams });
+    res.render('mensajes', 
+    { 
+        friends: userFriends, 
+        user: userName, 
+        teams: teams, 
+        hasNoti: userNotifications.length > 0 ? true : false,
+        friendName: contactName
+    });
 });
 
 
@@ -145,49 +161,49 @@ app.post('/teams', async (req, res) => {
 
 });
 
-app.post('/upload', upload.single('file'), async (req, res) => {
-    try {
-        const filePath = req.file.path;
-        const userId = req.body.userId;
-        const roomId = req.body.roomId;
+// app.post('/upload', upload.single('file'), async (req, res) => {
+//     try {
+//         const filePath = req.file.path;
+//         const userId = req.body.userId;
+//         const roomId = req.body.roomId;
 
-        console.log('Archivo recibido:', filePath);
-        console.log('ID del usuario:', userId);
-        console.log('ID del room:', roomId);
+//         console.log('Archivo recibido:', filePath);
+//         console.log('ID del usuario:', userId);
+//         console.log('ID del room:', roomId);
 
 
-        const result = await cloudinary.uploader.upload(filePath, {
-            resource_type: 'auto',
-        });
+//         const result = await cloudinary.uploader.upload(filePath, {
+//             resource_type: 'auto',
+//         });
 
-        await UserRepository.insertMultimedia(userId, result.secure_url, roomId);
-        const [results] = await connection.query(`
-            SELECT m.fecha_envio AS fecha, m.room_id, u.nombre AS emisor
-            FROM mensajes m
-            JOIN usuario u ON m.id_emisor = u.id_usuario
-            WHERE m.room_id = ?`,
-            [roomId]
-        );
+//         await UserRepository.insertMultimedia(userId, result.secure_url, roomId);
+//         const [results] = await connection.query(`
+//             SELECT m.fecha_envio AS fecha, m.room_id, u.nombre AS emisor
+//             FROM mensajes m
+//             JOIN usuario u ON m.id_emisor = u.id_usuario
+//             WHERE m.room_id = ?`,
+//             [roomId]
+//         );
 
-        fs.unlinkSync(filePath);
-
-        
+//         fs.unlinkSync(filePath);
 
         
 
-        io.emit('fileMessage', {
-            url: result.secure_url,
-            type: result.resource_type,
-            nombre: results[0].emisor,
-            fecha: results[0].fecha
-        });
+        
 
-        res.status(200).json({ success: true });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false });
-    }
-});
+//         io.emit('fileMessage', {
+//             url: result.secure_url,
+//             type: result.resource_type,
+//             nombre: results[0].emisor,
+//             fecha: results[0].fecha
+//         });
+
+//         res.status(200).json({ success: true });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ success: false });
+//     }
+// });
 
 
 const port = process.env.PORT ?? 1234;

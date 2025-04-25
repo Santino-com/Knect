@@ -7,19 +7,23 @@
     <title>Mensajes desde <%= user[0].nombre %>
     </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <%- include('partials/nav-buttons')%>
+    <%- include('partials/nav-buttons') %>
         <style>
             #videoCallModal {
                 display: none;
+                /* Ocultar inicialmente */
                 position: fixed;
+                /* Para que se superponga al contenido */
                 top: 0;
                 left: 0;
                 width: 100%;
                 height: 100%;
                 background-color: rgba(0, 0, 0, 0.5);
+                /* Fondo semitransparente */
                 justify-content: center;
                 align-items: center;
                 z-index: 1000;
+                /* Asegurar que esté por encima de otros elementos */
             }
 
             #videoCallContainer {
@@ -32,20 +36,12 @@
                 align-items: center;
             }
 
-            #localVideo {
-                width: 800px;
-                height: auto;
-                margin: 10px;
-                border: 1px solid #ccc;
-                border-radius: 10px;
-            }
-
+            #localVideo,
             #remoteVideo {
-                width: 200px;
-                height: auto;
+                width: 320px;
+                height: 240px;
                 margin: 10px;
                 border: 1px solid #ccc;
-                border-radius: 10px;
             }
         </style>
 </head>
@@ -54,8 +50,12 @@
     data-user-name="<%= user[0].nombre %>">
 
     <div class="d-flex">
-        <%- include('partials/nav-bar')%>
+        <%- include('partials/nav-bar') %>
+
+            <!-- Contenido principal -->
             <div class="content flex-fill">
+
+                <!-- Encabezado superior -->
                 <header class="upperNav bg-white p-3 shadow-sm">
                     <div id="buscar" class="d-flex justify-content-end gap-2">
                         <input type="text" class="form-control" placeholder="Buscar mensaje...">
@@ -64,60 +64,49 @@
                 </header>
 
                 <div class="mensajesContainer d-flex p-4 gap-4" style="height: 90vh;">
+                    <!-- Lista de conversaciones -->
                     <div class="container-fluid h-100">
                         <div class="row h-100">
                             <div class="col-md-3 p-3 bg-light" style="border-right: 1px solid #dee2e6;">
                                 <div class="d-flex flex-column h-100">
+
+                                    <!-- Sección de Amigos -->
                                     <div class="friends-section bg-white p-3 rounded shadow-sm mb-3 flex-grow-1"
                                         style="overflow-y: auto;">
-                                        <h3 class="mb-3">Amigos<span style="font-size: 17cpx;"> Tu eres <%=
-                                                    user[0].nombre %> </span></h3>
+                                        <h3 class="mb-3">Amigos <span style="font-size: 17px;">Tu eres <%= user[0].nombre %></span></h3>
                                         <% friends.forEach(friend=> { %>
-                                            <div
-                                                class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded">
-                                                <div class="d-flex align-items-center justify-content-between w-100">
-                                                    <button
-                                                        class="sendBtn border-0 bg-transparent text-start flex-grow-1"
-                                                        type="submit"
-                                                        onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-amigo').innerText"
-                                                        data-id="<%= friend.id_usuario %>">
-                                                        <span id="nombre-amigo">
-                                                            <%= friend.nombre %>
-                                                        </span>
-                                                        <span class="badge" data-id="<%= friend.id_usuario %>">
-                                                            -
-                                                        </span>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-info videoCallBtn"
-                                                        data-id="<%= friend.id_usuario %>"
-                                                        title="Llamar a <%= friend.nombre %>">
-                                                        <i class="bi bi-telephone">Call</i>
-                                                    </button>
-                                                </div>
-                                            </div>
+                                            <button
+                                                class="friends btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn"
+                                                type="submit"
+                                                onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-amigo').innerText"
+                                                data-id="<%= friend.id_usuario %>">
+                                                <span id="nombre-amigo">
+                                                    <%= friend.nombre %>
+                                                </span>
+                                                <% if(hasNoti && friendName === friend.nombre ) { %>
+                                                    <span class="badge" data-id="<%= friend.id_usuario %>"  style="background-color: green;">-</span>
+                                                <% } else { %>
+                                                    <span class="badge" data-id="<%= friend.id_usuario %>"  style="background-color: white;">-</span>
+                                                <% } %>
+                                            </button>
                                             <% }) %>
                                     </div>
 
                                     <div class="teams-section bg-white p-3 rounded shadow-sm flex-grow-1"
                                         style="overflow-y: auto;">
                                         <h3 class="mb-3">Equipos</h3>
-                                        <% teams.forEach(team=>{ %>
-                                            <div
-                                                class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded">
-                                                <div class="d-flex align-items-center justify-content-between w-100">
-                                                    <button
-                                                        class="sendBtn border-0 bg-transparent text-start flex-grow-1"
-                                                        type="submit"
-                                                        onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-equipo').innerText"
-                                                        data-id="<%= team.id_equipo %>">
-                                                        <span id="nombre-equipo">
-                                                            <%= team.nombre_equipo %>
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <% }) %>
+                                        <% teams.forEach(team=> { %>
+                                            <button
+                                                class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn"
+                                                onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-equipo').innerText"
+                                                data-id="<%= team.id_equipo %>">
+                                                <span id="nombre-equipo">
+                                                    <%= team.nombre_equipo %>
+                                                </span>
+                                            </button>
+                                        <% }) %>
                                     </div>
+
                                 </div>
                             </div>
 
@@ -137,6 +126,7 @@
                                         </div>
                                     </div>
 
+                                    <!-- Input para enviar mensajes -->
                                     <div class="chat-input p-3 bg-light border-top">
                                         <form class="d-flex align-items-center gap-2" id="formMensaje">
                                             <input type="text" id="mensajeInput" class="form-control rounded-pill px-4"
@@ -154,9 +144,9 @@
                                                 <i class="bi bi-paperclip me-1"></i> Archivo
                                             </label>
 
+                                            <!-- Botón para enviar el archivo manualmente -->
                                             <button type="button" id="enviarArchivo"
-                                                class="btn btn-success rounded-pill px-3 d-flex align-items-center"
-                                                onclick="uploadFile()">
+                                                class="btn btn-success rounded-pill px-3 d-flex align-items-center">
                                                 <i class="bi bi-upload me-1"></i> Enviar archivo
                                             </button>
                                         </form>
@@ -169,53 +159,30 @@
             </div>
     </div>
 
+
     <div id="videoCallModal">
         <div id="videoCallContainer">
             <h2>Videollamada con <span id="callingToName"></span></h2>
             <video id="localVideo" width="320" height="240" autoplay muted></video>
             <video id="remoteVideo" width="320" height="240" autoplay></video>
-            <div style="display: flex; gap: 50px;">
-                <button id="hangUpBtn" class="btn btn-danger mt-3">
-                    <i class="bi bi-telephone-x-fill me-1"></i> Colgar
-                </button>
-                <button id="closeVideoCallModal" class="btn btn-secondary mt-3 ms-2">Cerrar</button>
-            </div>
+            <button id="hangUpBtn" class="btn btn-danger mt-3">
+                <i class="bi bi-telephone-x-fill me-1"></i> Colgar
+            </button>
+            <button id="closeVideoCallModal" class="btn btn-secondary mt-3 ms-2">Cerrar</button>
         </div>
     </div>
-
 
     <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="/js/mensaje.js"></script>
     <script type="module" src="/js/calls.js"></script>
-    <script>
-        async function uploadFile() {
-            const input = document.getElementById('fileInput');
-            const file = input.files[0];
-            if (!file) return alert('Selecciona un archivo');
 
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('userId', '<%= user[0].id_usuario %>');
-            formData.append('roomId', currentRoomId);
-
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-
-            const data = await response.json();
-
-            input.value = null;
-        }
-
-        ////// Logout
+    <script type="module">
+        // Logout
         document.getElementById('logout').addEventListener('click', () => {
             document.cookie = 'jwt=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             window.location.href = '/login';
         });
     </script>
-
 </body>
 
 </html>
