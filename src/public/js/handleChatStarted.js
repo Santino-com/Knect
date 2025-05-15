@@ -3,6 +3,7 @@ import { renderTextMessage, renderFileMessage } from "./render-mensaje.js";
 
 export function handleChatStarted(previusMessages, roomId) {
     let currentRoomId = roomId;
+    //////Posible -> Asignar por separado el id del room
 
     const mensajesDiv = document.getElementById('mensajes');
     mensajesDiv.innerHTML = ''; // Limpiar mensajes anteriores

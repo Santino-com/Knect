@@ -14,26 +14,35 @@ import { nanoid } from 'nanoid';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import fs from 'fs'
-import {socketHandlers} from './sockets.js';
+import { socketHandlers } from './sockets.js';
+import cors from "cors";
 
 
 
 dotenv.config();
 const app = express();
+
+app.use(cors({
+  origin: "http://localhost:3000", // o el dominio de tu frontend
+  methods: ["GET", "POST"]
+}));
 const server = createServer(app);
 const io = new Server(server, {
-    connectionStateRecovery: {}
+    cors: {
+    origin: "http://localhost:3000", // importante
+    methods: ["GET", "POST"]
+  }
 });
 
 app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 
 
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
-    api_secret: process.env.API_SECRET 
+    api_secret: process.env.API_SECRET
 });
 
 const upload = multer({ dest: 'uploads/' });
@@ -54,11 +63,16 @@ app.get('/home', authorize.onlyAdmin, async (req, res) => {
     const userNameCookie = await authorize.getUserFromCookie(req);
     const currentUser = await UserRepository.getInfo(userNameCookie);
     const userFriends = await UserRepository.getFriends(userNameCookie);
-    const userNotifications = await UserRepository.getNotification(currentUser[0].id_usuario);
+    const userNotifications = await UserRepository.getNotification(currentUser[0].id_usuario, 'individuales');
+    const numberOfTareas = await UserRepository.getNumberOfTareas(currentUser[0].id_usuario)
 
-    console.log(userNotifications);
-
-    res.render('home', { user: currentUser[0], friends: userFriends, notifications:  userNotifications});
+    //const teamNotifications = await UserRepository.getNotification(currentUser[0].id_usuario, 'equipo');
+    res.render('home', {
+        user: currentUser[0],
+        friends: userFriends,
+        notifications: userNotifications,
+        numOfTareas: numberOfTareas[0]?.Tareas
+    });
 });
 
 app.get('/mensajes', async (req, res) => {
@@ -68,22 +82,37 @@ app.get('/mensajes', async (req, res) => {
     const teams = await TeamRepository.getAllTeams(userName[0].id_usuario);
     const userNotifications = await UserRepository.getNotification(userName[0].id_usuario);
 
-    let contactName;
-    if(userNotifications.length>0) {
-        contactName = userNotifications[0].emisor; 
-    } else {
-        contactName = 'nadie'
-    }
+    let contactName = [];
+    let teamWithNotification = [];
 
-    res.render('mensajes', 
-    { 
-        friends: userFriends, 
-        user: userName, 
-        teams: teams, 
-        hasNoti: userNotifications.length > 0 ? true : false,
-        friendName: contactName
-    });
+    userNotifications.forEach(item => {
+        if (!item.room_id.startsWith("room")) {
+            teamWithNotification.push(item.room_id);
+        } else {
+            contactName.push(item.emisor);
+        }
+    })
+
+    console.log(userName[0].encryption_enabled)
+
+    res.render('mensajes',
+        {
+            friends: userFriends,
+            user: userName[0],
+            teams: teams,
+            hasNoti: userNotifications.length > 0 ? true : false,
+            friendName: contactName,
+            teamName: teamWithNotification
+        });
 });
+
+app.get('/tareas', authorize.onlyAdmin, async (req, res) => {
+    const userNameCookie = await authorize.getUserFromCookie(req);
+    const userName = await UserRepository.getInfo(userNameCookie);
+    const tareas = await UserRepository.getOwnTareas(userName[0].id_usuario);
+
+    res.render('tareas', { tareas: tareas, puntaje: userName[0].puntaje, user: userName[0] });
+})
 
 
 io.on('connect', async (socket) => {
@@ -98,8 +127,18 @@ app.get('/teams', async (req, res) => {
     const teams = await TeamRepository.getAllTeams(userName[0].id_usuario);
 
 
-    res.render('teams', { equipos: teams });
+    res.render('teams', { equipos: teams, user: userName[0] });
 });
+
+app.get('/teams/:id', async (req, res) => {
+    const teamId = req.params.id;
+    const teamTareas = await TeamRepository.getTeamTareas(teamId)
+
+    res.render('tareas-team', {
+        tareas: teamTareas,
+        teamId: teamId
+    })
+})
 
 
 app.post('/login', async (req, res) => {
@@ -161,50 +200,88 @@ app.post('/teams', async (req, res) => {
 
 });
 
-// app.post('/upload', upload.single('file'), async (req, res) => {
+app.post('/tareas', async (req, res) => {
+    console.log(req.body);
+    const userNameCookie = await authorize.getUserFromCookie(req);
+    const userName = await UserRepository.getInfo(userNameCookie);
+
+    const { title, description, dueDate, priority, tipo, id } = req.body;
+
+    if(tipo == 'team') {
+        try {
+            const result = await UserRepository.createTarea(title, description, dueDate, priority, null, id)
+    
+            res.send({ status: 'ok', message: 'Tarea creada con exito', redirect: `/teams/${id}`})
+        } catch (error) {
+            res.send({ status: 'error', message: error })
+        }
+    } else {
+        try {
+            const result = await UserRepository.createTarea(title, description, dueDate, priority, userName[0].id_usuario)
+    
+            res.send({ status: 'ok', message: 'Tarea creada con exito', redirect: '/tareas' })
+        } catch (error) {
+            res.send({ status: 'error', message: error })
+        }
+    }
+
+})
+
+app.delete('/tareas', async (req, res) => {
+
+    try {
+        const { taskId } = req.body;
+        await UserRepository.deleteTarea(taskId);
+
+        res.send({ status: 'ok', message: 'Se ha eliminado correctamente la tarea', redirect: '/tareas' })
+    } catch (error) {
+        res.send({ status: 'error', message: error })
+    }
+
+})
+
+app.patch(`/tareas/:id`, async (req, res) => {
+    const taskId = req.params.id;
+    const { status } = req.body;
+
+    if (status) {
+        try {
+            await UserRepository.checkedTarea(taskId, 1);
+
+            res.send({ status: 'ok', completed: true, redirect: '/tareas' })
+        } catch (error) {
+            res.send({ status: 'error' })
+        }
+    } else {
+        try {
+            await UserRepository.checkedTarea(taskId, 0);
+
+            res.send({ status: 'ok', completed: false, redirect: '/tareas' })
+        } catch (error) {
+            res.send({ status: 'error' })
+        }
+    }
+
+
+
+
+
+})
+
+// app.post('/settings/encryption', authorize.onlyAdmin, async (req, res) => {
+//     const userNameCookie = await authorize.getUserFromCookie(req);
+//     const userName = await UserRepository.getInfo(userNameCookie);
+
+//     const { enableEncryption } = req.body;
+//     let temp = enableEncryption ? 1 : 0
+
 //     try {
-//         const filePath = req.file.path;
-//         const userId = req.body.userId;
-//         const roomId = req.body.roomId;
-
-//         console.log('Archivo recibido:', filePath);
-//         console.log('ID del usuario:', userId);
-//         console.log('ID del room:', roomId);
-
-
-//         const result = await cloudinary.uploader.upload(filePath, {
-//             resource_type: 'auto',
-//         });
-
-//         await UserRepository.insertMultimedia(userId, result.secure_url, roomId);
-//         const [results] = await connection.query(`
-//             SELECT m.fecha_envio AS fecha, m.room_id, u.nombre AS emisor
-//             FROM mensajes m
-//             JOIN usuario u ON m.id_emisor = u.id_usuario
-//             WHERE m.room_id = ?`,
-//             [roomId]
-//         );
-
-//         fs.unlinkSync(filePath);
-
-        
-
-        
-
-//         io.emit('fileMessage', {
-//             url: result.secure_url,
-//             type: result.resource_type,
-//             nombre: results[0].emisor,
-//             fecha: results[0].fecha
-//         });
-
-//         res.status(200).json({ success: true });
+//         await UserRepository.setEncryptionPreference(userName[0].id_usuario, temp);
+//         res.send({ status: 'ok', message: 'Preferencia actualizada correctamente' });
 //     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ success: false });
+//         res.status(500).send({ status: 'error', message: 'Error al actualizar la preferencia' });
 //     }
 // });
-
 
 const port = process.env.PORT ?? 1234;
 

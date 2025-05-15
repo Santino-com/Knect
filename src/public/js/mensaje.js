@@ -3,14 +3,22 @@ import { setUserStatus } from './setUserStatus.js';
 import { handleChatStarted } from "./handleChatStarted.js";
 import { handleFileMessage } from "./handleFileMessage.js";
 
+
 const body = document.querySelector('body');
 const userId = body.dataset.userId;
 const userName = body.dataset.userName;
+console.log(userName)
 
 let currentRoomId = 0;
-let contactId = 0;
+let contactId = null;
 let socket;
 export { socket };
+
+
+// function decryptMessage(encryptedMessage, secret) {
+//     const bytes = CryptoJS.AES.decrypt(encryptedMessage, secret);
+//     return bytes.toString(CryptoJS.enc.Utf8);
+// }
 
 
 function startChat(contactId) {
@@ -18,17 +26,43 @@ function startChat(contactId) {
     socket.emit('start-chat', contactId, currentUserId);
 }
 
+function startChatTeam(teamId) {
+    const currentUserId = userId;
+    socket.emit('start-chat-team', teamId, currentUserId);
+}
 
-const friendItems = document.querySelectorAll(".sendBtn"); //Agregar a cada amigo el eventListener para iniciar un chat a la hora de dar click
+
+const friendItems = document.querySelectorAll(".sendBtn");
 friendItems.forEach(item => {
     item.addEventListener('click', () => {
-        contactId = item.dataset.id;
-        //updateNotificationBadge(contactId, true);
+        if (contactId !== item.dataset.id) {
+            socket.emit('leave-chat', contactId, userId);
+        }
+
+        contactId = parseInt(item.dataset.id);
         console.log(`Estas en el chat de ${contactId} y ${userId}. Tu eres ${userId}`);
         startChat(contactId);
 
     });
 });
+
+
+const teamItems = document.querySelectorAll('.sendBtnTeam');
+teamItems.forEach(item => {
+    item.addEventListener('click', () => {
+        if (contactId !== item.dataset.id) {
+            socket.emit('leave-chat', contactId, userId);
+        }
+
+        contactId = item.dataset.id;
+        console.log(`Estas en el chat de equipo ${contactId}. Tu eres ${userId}`);
+        startChatTeam(contactId);
+    });
+});
+
+
+
+
 
 
 const mensajeInput = document.getElementById('mensajeInput');
@@ -39,9 +73,18 @@ mensajeForm.addEventListener('submit', async (e) => {
     const msg = mensajeInput.value.trim();
 
     if (msg) {
-        socket.emit('chat message', msg, currentRoomId, contactId);
-        mensajeInput.value = '';
-        mensajeInput.focus();
+        if (typeof (contactId) == 'number') {
+            console.log('Mensaje enviado a una persona')
+            socket.emit('chat message', msg, currentRoomId, contactId);
+            mensajeInput.value = '';
+            mensajeInput.focus();
+        } else if (typeof (contactId) == 'string') {
+            console.log('Mensaje enviado a un equipo')
+            socket.emit('team message', msg, contactId);
+            mensajeInput.value = '';
+            mensajeInput.focus();
+        }
+
     }
 
 });
@@ -78,12 +121,25 @@ async function initializeSocket() {
         currentRoomId = handleChatStarted(previusMessages, roomId);
     });
 
-    socket.on('chat message', (msg, serverOffset, fecha, username) => {
+    socket.on('chat message', async (msg, serverOffset, fecha, username) => {
+        // if (isEncryptated) {
+        //     const secret = 'Clave_Ultra_segura';
+        //     const finalMessage = decryptMessage(msg, secret);
+        //     handleChatMessage(finalMessage, serverOffset, fecha, username);
+        // } else {
+        //     handleChatMessage(msg, serverOffset, fecha, username);
+        // }
+
+        handleChatMessage(msg, serverOffset, fecha, username);
+
+    });
+
+    socket.on('team message', (msg, serverOffset, fecha, username) => {
         handleChatMessage(msg, serverOffset, fecha, username);
     });
 
-    socket.on('notification', (userId) => {
-        updateNotificationBadge(userId, true);
+    socket.on('notification', (userIdNoti) => {
+        updateNotificationBadge(userIdNoti, true);
     });
 
     socket.on('clear-notifications', (userId) => {
@@ -119,10 +175,11 @@ function handleChatMessage(msg, serverOffset, fecha, username) {
     socket.auth.serverOffset = serverOffset;
 }
 
-function updateNotificationBadge(userId, status) {
+function updateNotificationBadge(userIdNoti, status) {
+    console.log(typeof (userIdNoti))
     const notis = document.querySelectorAll('.badge');
     notis.forEach((noti) => {
-        if (noti.dataset.id == userId) {
+        if (noti.dataset.id == userIdNoti) {
             noti.style.background = status ? 'green' : 'white';
         }
     });

@@ -38,5 +38,12 @@ export class TeamRepository
         return results;
     }
 
+    static async getTeamTareas(teamId) {
+        const [result] = await connection.query("SELECT * FROM Tareas WHERE id_equipo = ?", [teamId])
+        if(result.length == 0) return []
+        
+        return result
+    }
+
 }
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mensajes desde <%= user[0].nombre %>
+    <title>Mensajes desde <%= user.nombre %>
     </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <%- include('partials/nav-buttons') %>
@@ -46,8 +46,8 @@
         </style>
 </head>
 
-<body class="d-flex flex-column min-vh-100" data-user-id="<%= user[0].id_usuario %>"
-    data-user-name="<%= user[0].nombre %>">
+<body class="d-flex flex-column min-vh-100" data-user-id="<%= user.id_usuario %>"
+    data-user-name="<%= user.nombre %>">
 
     <div class="d-flex">
         <%- include('partials/nav-bar') %>
@@ -73,20 +73,23 @@
                                     <!-- Sección de Amigos -->
                                     <div class="friends-section bg-white p-3 rounded shadow-sm mb-3 flex-grow-1"
                                         style="overflow-y: auto;">
-                                        <h3 class="mb-3">Amigos <span style="font-size: 17px;">Tu eres <%= user[0].nombre %></span></h3>
+                                        <h3 class="mb-3">Amigos <span style="font-size: 17px;">Tu eres <%=
+                                                    user.nombre %></span></h3>
                                         <% friends.forEach(friend=> { %>
                                             <button
                                                 class="friends btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn"
                                                 type="submit"
                                                 onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-amigo').innerText"
-                                                data-id="<%= friend.id_usuario %>">
+                                                data-id='<%= friend.id_usuario %>'>
                                                 <span id="nombre-amigo">
                                                     <%= friend.nombre %>
                                                 </span>
-                                                <% if(hasNoti && friendName === friend.nombre ) { %>
-                                                    <span class="badge" data-id="<%= friend.id_usuario %>"  style="background-color: green;">-</span>
+                                                <% if(hasNoti && friendName.includes(friend.nombre)) { %>
+                                                    <span class="badge" data-id="<%= friend.id_usuario %>"
+                                                        style="background-color: green;">-</span>
                                                 <% } else { %>
-                                                    <span class="badge" data-id="<%= friend.id_usuario %>"  style="background-color: white;">-</span>
+                                                        <span class="badge" data-id="<%= friend.id_usuario %>"
+                                                            style="background-color: white;">-</span>
                                                 <% } %>
                                             </button>
                                             <% }) %>
@@ -97,16 +100,23 @@
                                         <h3 class="mb-3">Equipos</h3>
                                         <% teams.forEach(team=> { %>
                                             <button
-                                                class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtn"
+                                                class="btn btn-light w-100 d-flex justify-content-between align-items-center p-3 mb-2 shadow-sm rounded sendBtnTeam"
                                                 onclick="document.getElementById('nombreContacto').innerText = this.querySelector('#nombre-equipo').innerText"
                                                 data-id="<%= team.id_equipo %>">
                                                 <span id="nombre-equipo">
                                                     <%= team.nombre_equipo %>
                                                 </span>
-                                            </button>
-                                        <% }) %>
-                                    </div>
 
+                                                <% if(hasNoti && teamName.includes(team.id_equipo)) { %>
+                                                    <span class="badge" data-id="<%= team.id_equipo %>"
+                                                        style="background-color: green;">-</span>
+                                                    <% } else { %>
+                                                        <span class="badge" data-id="<%= team.id_equipo %>"
+                                                            style="background-color: white;">-</span>
+                                                        <% } %>
+                                            </button>
+                                            <% }) %>
+                                    </div>
                                 </div>
                             </div>
 
@@ -114,6 +124,13 @@
                                 <div class="chat flex-fill bg-white d-flex flex-column">
                                     <div class="chat-header text-center bg-dark text-white p-3">
                                         <h3 id="nombreContacto" class="m-0">-------</h3>
+                                        <form action="/settings/encryption" method="POST" id="encryption-form">
+                                            <label>
+                                                <input type="checkbox" name="enableEncryption" value="true" <% if (user.encryption_enabled == 1) { %>checked<% } %> />
+                                                    Habilitar encriptación de mensajes
+                                            </label>
+                                            <button type="submit">Guardar</button>
+                                        </form>
                                     </div>
 
                                     <div class="chat-messages flex-fill d-flex flex-column gap-3 p-4 overflow-auto"
@@ -173,6 +190,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script type="module" src="/js/mensaje.js"></script>
     <script type="module" src="/js/calls.js"></script>
 

@@ -118,30 +118,64 @@ export class UserRepository {
         return results;
     }
 
+    static async getNumberOfTareas(userId) {
+        const [result] = await connection.query(`SELECT id_usuario, count(id_usuario) AS Tareas
+                                                FROM Tareas
+                                                WHERE id_usuario = ?
+                                                AND cheked = 0
+                                                GROUP BY id_usuario;
+                                                `, [userId])
+
+        return result
+    }
+
     static async setNotification(userId, msgId) {
-        try {
-            const [result] = await connection.query(`
-                INSERT INTO notificaciones (id_usuario, id_mensaje)
-                VALUES (?, ?)
-            `, [userId, msgId]);
-            return result;
-        } catch (error) {
-            console.error('Error al incrementar notificaciones:', error);
-            return null;
+
+        if (typeof (userId) == 'number') {
+            try {
+                const [result] = await connection.query(`
+                    INSERT INTO notificaciones (id_usuario, id_mensaje)
+                    VALUES (?, ?)
+                `, [userId, msgId]);
+                return result;
+            } catch (error) {
+                console.error('Error al incrementar notificaciones:', error);
+                return null;
+            }
+        } else if (typeof (userId) == 'string') {
+            ////////Es un mensaje de un equipo
+            try {
+                const [result] = await connection.query(`
+                    INSERT INTO notificaciones (id_team, id_mensaje)
+                    VALUES (?, ?)
+                `, [userId, msgId]);
+                return result;
+            } catch (error) {
+                console.error('Error al incrementar notificaciones:', error);
+                return null;
+            }
         }
     }
 
-    static async deleteNotification(id) {
-
-        const [rows] = await connection.query(`
+    static async deleteNotification(id, tipo) {
+        if (tipo == 'individual') {
+            const [rows] = await connection.query(`
                 DELETE FROM notificaciones WHERE id_usuario = ?
             `, [id]);
 
-        return rows
+            return rows
+        } else if (tipo == 'equipo') {
+            const [rows] = await connection.query(`
+                DELETE FROM notificaciones WHERE id_team = ?
+            `, [id]);
+            return rows
+        }
+
+
     }
 
     static async getNotification(id) {
-        
+
         const [results] = await connection.query(`
             SELECT * FROM vista_notificaciones_mensajes WHERE id_usuario = ?
         `, [id]);
@@ -149,17 +183,72 @@ export class UserRepository {
         return results;
     }
 
-}
+    static async getTeamMessages(teamId) {
+        const [results] = await connection.query(
+            `SELECT m.contenido, m.multimedia, m.fecha_envio, u.nombre 
+            FROM mensajes m
+            JOIN usuario u ON m.id_emisor = u.id_usuario
+            WHERE m.room_id = ?
+            ORDER BY m.fecha_envio`,
+            [teamId]
+        );
 
-
-class ValidateData {
-    static ValidateUser(user) {
-        if (typeof user !== 'string') throw new Error('El usuario debe ser un string');
-        if (user.length < 3) throw new Error('El usuario debe ser mayor a tres caracteres');
+        return results;
     }
 
-    static ValidatePassword(password) {
-        if (typeof password !== 'string') throw new Error('La contraseña debe ser un string');
-        if (password.length < 6) throw new Error('La contraseña debe ser mayor a 6 caracteres');
+    static async getTeamMembers(teamId) {
+        const [results] = await connection.query(
+            "SELECT ue.id_equipo, ue.id_usuario, u.nombre FROM usuarios_equipo ue JOIN usuario u ON u.id_usuario = ue.id_usuario WHERE ue.id_equipo = ?",
+            [teamId]
+        );
+
+        return results;
     }
+
+    static async createTarea(title, description, dueDate, priority, userId = null, teamId = null) {
+        try {
+            const [newTarea] = await connection.query(`INSERT INTO Tareas (titulo, descripcion, fecha_limite, prioridad, id_usuario, id_equipo) 
+                                                    VALUES (?, ?, ?, ?, ?, ?)`, [title, description, dueDate, priority, userId, teamId])
+
+            if (newTarea.affectedRows == 0) throw new Error('Ha ocurrido un error a la hora de crear la tarea')
+
+            return newTarea
+        } catch (error) {
+            throw new Error('Ha ocurrido un error con la base de datos')
+        }
+    }
+
+    static async getOwnTareas(userId) {
+        const [results] = await connection.query("SELECT * FROM Tareas WHERE id_usuario = ?", [userId])
+        return results;
+    }
+
+    static async deleteTarea(taskId) {
+        const [result] = await connection.query("DELETE FROM Tareas WHERE id_tarea = ?", [taskId])
+
+        if (result.affectedRows == 0) throw new Error('Ha ocurrido un error en la base de datos');
+    }
+
+    static async checkedTarea(taskId, status) {
+        const [result] = await connection.query("UPDATE Tareas SET cheked = ? WHERE id_tarea = ?", [status, taskId])
+
+        if (result.affectedRows == 0) throw new Error('Ha ocurrido un error en la base de datos');
+    }
+
+    static async getEncryptionPreference(userId) {
+        const [result] = await connection.query(
+            'SELECT encryption_enabled FROM usuario WHERE id_usuario = ?',
+            [userId]
+        );
+        return result[0]?.encryption_enabled ?? 0;
+    }
+
+    static async setEncryptionPreference(userId, enabled) {
+        await connection.query(
+            'UPDATE usuario SET encryption_enabled = ? WHERE id_usuario = ?',
+            [enabled, userId]
+        );
+    }
+
 }
+

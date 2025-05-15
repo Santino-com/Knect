@@ -67,32 +67,5 @@ function initializeSocket() {
     });
 }
 
-function updateNotificationBadge(userId, status) {
-    // Buscar todos los elementos con la clase badge que correspondan al usuario
-    const badges = document.querySelectorAll(`.badge[data-id="${userId}"]`);
-    
-    badges.forEach(badge => {
-        if (status) {
-            badge.style.background = 'green';
-            badge.style.display = 'inline-block';
-        } else {
-            badge.style.background = 'white';
-            badge.style.display = 'none';
-        }
-    });
-    
-    // Si no existen badges para este usuario, podríamos crear uno en algún lugar visible
-    // como el nav-bar o junto al nombre del usuario en la lista de amigos
-    if (badges.length === 0 && status) {
-        const friendItem = document.querySelector(`li[data-id="${userId}"]`);
-        if (friendItem) {
-            const notificationDot = document.createElement('span');
-            notificationDot.className = 'badge rounded-pill bg-success ms-2';
-            notificationDot.dataset.id = userId;
-            notificationDot.innerHTML = '●';
-            friendItem.appendChild(notificationDot);
-        }
-    }
-}
 
 initializeSocket();
